@@ -131,7 +131,14 @@ if uploaded_file is not None:
                     scanner = SmartScanner()
                     
                     # 运行扫描
-                    warped, enhanced, _ = scanner.scan(temp_path)
+                    warped, enhanced, _ = scanner.scan(       # 运行扫描（传递参数！）
+                        temp_path,
+                        canny_threshold1=canny_threshold1,
+                        canny_threshold2=canny_threshold2,
+                        blur_kernel_size=blur_kernel_size,
+                        adaptive_block_size=adaptive_block_size,
+                        adaptive_c=adaptive_c
+                    )
                     
                     # 转换为 RGB 供 Streamlit 显示
                     warped_rgb = cv2.cvtColor(warped, cv2.COLOR_BGR2RGB)

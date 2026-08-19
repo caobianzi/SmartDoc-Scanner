@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 
 class SmartScanner:
-    """智能文档扫描器 - 轻量版（无 OCR）"""
+    """智能文档扫描器 - 轻量版（无 OCR，支持参数调节）"""
     
     def __init__(self):
         print("✅ 智能扫描器已初始化（轻量版）")
@@ -19,14 +19,15 @@ class SmartScanner:
         rect[3] = pts[np.argmax(diff)]
         return rect
 
-    def preprocess(self, image_path):
+    def preprocess(self, image_path, canny_threshold1=50, canny_threshold2=150):
+        """预处理：边缘检测，支持参数调节"""
         img = cv2.imread(image_path)
         if img is None:
             raise FileNotFoundError(f"无法读取图像: {image_path}")
         
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-        edges = cv2.Canny(blurred, 50, 150)
+        edges = cv2.Canny(blurred, canny_threshold1, canny_threshold2)
         return img, edges
 
     def find_document_contour(self, edges):
@@ -58,25 +59,46 @@ class SmartScanner:
         warped = cv2.warpPerspective(img, M, (int(width), int(height)))
         return warped
 
-    def enhance_image(self, warped):
+    def enhance_image(self, warped, blur_kernel_size=51, adaptive_block_size=11, adaptive_c=8):
+        """图像增强，支持参数调节"""
         warped_gray = cv2.cvtColor(warped, cv2.COLOR_BGR2GRAY)
-        background = cv2.GaussianBlur(warped_gray, (51, 51), 0)
+        
+        # 确保核大小是奇数
+        if blur_kernel_size % 2 == 0:
+            blur_kernel_size += 1
+        
+        background = cv2.GaussianBlur(warped_gray, (blur_kernel_size, blur_kernel_size), 0)
         enhanced = (warped_gray.astype("float32") / (background.astype("float32") + 1e-5)) * 255
         enhanced = np.clip(enhanced, 0, 255).astype("uint8")
+        
+        # 确保块大小是奇数
+        if adaptive_block_size % 2 == 0:
+            adaptive_block_size += 1
+        
         final_img = cv2.adaptiveThreshold(enhanced, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, 
-                                          cv2.THRESH_BINARY, 11, 8)
+                                          cv2.THRESH_BINARY, adaptive_block_size, adaptive_c)
         return final_img
 
-    def scan(self, image_path):
+    def scan(self, image_path, canny_threshold1=50, canny_threshold2=150, 
+             blur_kernel_size=51, adaptive_block_size=11, adaptive_c=8):
+        """主流程，支持所有参数调节"""
         print(f" 正在处理图像: {image_path} ...")
+        print(f"  参数: Canny({canny_threshold1}, {canny_threshold2}), "
+              f"Blur({blur_kernel_size}), Adaptive({adaptive_block_size}, {adaptive_c})")
         
-        img, edges = self.preprocess(image_path)
+        # 1. 预处理（带参数）
+        img, edges = self.preprocess(image_path, canny_threshold1, canny_threshold2)
+        
+        # 2. 找轮廓
         cnt = self.find_document_contour(edges)
         if cnt is None:
-            raise ValueError("未找到文档轮廓")
+            raise ValueError("未找到文档轮廓，请确保图片中有清晰的矩形物体。")
         
+        # 3. 矫正
         warped = self.warp_image(img, cnt)
-        enhanced = self.enhance_image(warped)
+        
+        # 4. 增强（带参数）
+        enhanced = self.enhance_image(warped, blur_kernel_size, adaptive_block_size, adaptive_c)
         
         text_content = "OCR 功能在云端已禁用"
         
