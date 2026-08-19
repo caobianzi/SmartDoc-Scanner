@@ -127,7 +127,7 @@ if uploaded_file is not None:
                 try:
                     # 这里需要稍微修改一下你的 main.py
                     # 让它可以直接处理 numpy 数组而不是文件路径
-                    from main import SmartScanner
+                    from main_lite import SmartScanner
                     scanner = SmartScanner()
                     
                     # 运行扫描
