@@ -42,6 +42,16 @@
 ```bash
 git clone https://github.com/caobianzi/SmartDoc-Scanner.git
 cd SmartDoc-Scanner
+##  在线演示（Streamlit Web 应用）
 
+本项目提供了交互式的 Web 界面，无需配置环境即可体验！
+
+### 本地运行
+```bash
+# 安装依赖
+pip install -r requirements.txt
+
+# 启动 Streamlit 应用
+streamlit run streamlit_app.py
 
 
