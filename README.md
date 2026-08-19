@@ -1,7 +1,10 @@
 # SmartDoc-Scanner 智能文档扫描系统
 
+🌐 **在线演示：[https://smartdoc-scanner.streamlit.app](https://smartdoc-scanner.streamlit.app)**
+
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/)
 [![OpenCV](https://img.shields.io/badge/OpenCV-4.8+-green.svg)](https://opencv.org/)
+[![Streamlit](https://img.shields.io/badge/Streamlit-Deployed-red.svg)](https://smartdoc-scanner.streamlit.app)
 
 ## 📖 项目简介
 
