@@ -131,7 +131,13 @@ if uploaded_file is not None:
                 # 临时保存
                 temp_path = "temp_streamlit.jpg"
                 cv2.imwrite(temp_path, img_bgr)
-                
+
+
+     # 处理按钮
+    st.info(" 正在加载 AI 模型并分析图片，首次运行可能需要 10-20 秒...")
+    
+    with st.spinner('🔍 YOLO 正在识别文档区域...'):
+        # ... 后面的代码不变 ...
                 # 调用核心算法
                 try:
                     

@@ -3,33 +3,29 @@ import cv2
 import numpy as np
 
 class DocumentDetector:
-    """基于 YOLOv8 的文档检测器"""
+    """基于 YOLOv8 文档专用模型的检测器"""
     
     def __init__(self):
-        # 加载预训练的 YOLOv8 模型 (nano 版本，速度最快)
-        # 这里我们先用通用的 COCO 模型，后面可以换成专门检测文档的模型
-        self.model = YOLO('yolov8n.pt')
-        print("✅ YOLOv8 文档检测器已初始化")
+        # 加载专门针对文档微调过的 YOLOv8 模型
+        # 这个模型认识“纸”、“文档”、“表格”，无视复杂背景
+        print(" 正在加载文档专用 YOLO 模型 (首次运行需下载，请耐心等待)...")
+        self.model = YOLO('keremberke/yolov8n-document')
+        print("✅ 文档专用 YOLO 检测器已初始化")
         
     def detect(self, image_path):
         """
         检测图片中的文档区域
-        返回：文档的四个角点坐标 (numpy array) 或 None
         """
-        # 运行推理
-        results = self.model(image_path, verbose=False)
+        # 运行推理 (conf=0.25 降低阈值，让模型更敏感)
+        results = self.model(image_path, conf=0.25, verbose=False)
         
-        # 获取结果
         result = results[0]
-        
-        # 获取边界框 (xyxy 格式: xmin, ymin, xmax, ymax)
         boxes = result.boxes.xyxy.cpu().numpy()
         
         if len(boxes) == 0:
             return None
             
-        # 找到面积最大的那个框（假设最大的就是文档）
-        # 实际应用中，这里应该用专门检测 "book" 或 "paper" 的类别
+        # 找到面积最大的那个框
         largest_box = None
         max_area = 0
         
@@ -43,7 +39,7 @@ class DocumentDetector:
         if largest_box is None:
             return None
             
-        # 将 xyxy 转换为四个角点 (左上, 右上, 右下, 左下)
+        # 将 xyxy 转换为四个角点
         x1, y1, x2, y2 = largest_box
         pts = np.array([
             [x1, y1],  # 左上
