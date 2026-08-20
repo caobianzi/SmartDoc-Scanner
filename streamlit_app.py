@@ -42,6 +42,15 @@ st.markdown('<p class="sub-header">智能文档扫描系统 | 基于传统CV与�
 # 侧边栏
 with st.sidebar:
     st.header("️ 参数设置")
+    st.markdown("---")
+    debug_mode = st.checkbox("🔧 调试模式", value=False)
+    if debug_mode:
+        st.info("""
+        **调试信息**：
+        - 策略1：寻找标准四边形（最准确）
+        - 策略2：使用最小外接矩形（容错）
+        - 策略3：返回原图（兜底）
+        """)
     
     st.subheader("透视矫正")
     canny_threshold1 = st.slider("Canny 阈值1", 0, 200, 50)
@@ -123,15 +132,15 @@ if uploaded_file is not None:
                 temp_path = "temp_streamlit.jpg"
                 cv2.imwrite(temp_path, img_bgr)
                 
-                # 调用你的核心算法
+                # 调用核心算法
                 try:
-                    # 这里需要稍微修改一下你的 main.py
-                    # 让它可以直接处理 numpy 数组而不是文件路径
+                    
+                    # 直接处理 numpy 数组而不是文件路径
                     from main_lite import SmartScanner
                     scanner = SmartScanner()
                     
-                    # 运行扫描
-                    warped, enhanced, _ = scanner.scan(       # 运行扫描（传递参数！）
+                    # 运行扫描（传递参数！）
+                    warped, enhanced, _ = scanner.scan(      
                         temp_path,
                         canny_threshold1=canny_threshold1,
                         canny_threshold2=canny_threshold2,
@@ -139,6 +148,9 @@ if uploaded_file is not None:
                         adaptive_block_size=adaptive_block_size,
                         adaptive_c=adaptive_c
                     )
+                    # 显示调试信息
+                    if debug_mode:
+                        st.success("✅ 文档检测成功！")
                     
                     # 转换为 RGB 供 Streamlit 显示
                     warped_rgb = cv2.cvtColor(warped, cv2.COLOR_BGR2RGB)

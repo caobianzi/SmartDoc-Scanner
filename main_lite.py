@@ -30,20 +30,44 @@ class SmartScanner:
         edges = cv2.Canny(blurred, canny_threshold1, canny_threshold2)
         return img, edges
 
-    def find_document_contour(self, edges):
-        contours, _ = cv2.findContours(edges, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
-        if not contours:
-            return None
+        def find_document_contour(self, edges):
+            """寻找文档轮廓，带多重容错机制"""
+            contours, _ = cv2.findContours(edges, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+            if not contours:
+                return None
+                
+            # 按面积排序，取前20个最大的轮廓
+            contours = sorted(contours, key=cv2.contourArea, reverse=True)[:20]
             
-        contours = sorted(contours, key=cv2.contourArea, reverse=True)
-        
-        for c in contours[:10]:
-            peri = cv2.arcLength(c, True)
-            approx = cv2.approxPolyDP(c, 0.02 * peri, True)
-            if len(approx) == 4:
-                if cv2.contourArea(approx) > 1000:
-                    return approx.reshape(4, 2)
-        return None
+            # 策略1：寻找标准的四边形
+            for c in contours:
+                peri = cv2.arcLength(c, True)
+                approx = cv2.approxPolyDP(c, 0.02 * peri, True)
+                if len(approx) == 4:
+                    if cv2.contourArea(approx) > 1000:
+                        print("✅ 策略1：找到标准四边形")
+                        return approx.reshape(4, 2)
+            
+            # 策略2：如果找不到四边形，取最大轮廓的最小外接矩形
+            print("⚠️ 策略1失败，尝试策略2：最小外接矩形")
+            largest_contour = contours[0]
+            if cv2.contourArea(largest_contour) > 5000:
+                # 获取最小外接矩形
+                rect = cv2.minAreaRect(largest_contour)
+                box = cv2.boxPoints(rect)
+                box = np.array(box, dtype="float32")
+                print("✅ 策略2成功：使用最小外接矩形")
+                return box
+            
+            # 策略3：如果还是不行，返回图片的四个角（作为最后手段）
+            print("❌ 策略2失败，返回图片四角作为兜底")
+            h, w = edges.shape
+            return np.array([
+                [0, 0],
+                [w-1, 0],
+                [w-1, h-1],
+                [0, h-1]
+            ], dtype="float32")
 
     def warp_image(self, img, pts):
         pts = self.order_points(pts)
