@@ -10,7 +10,7 @@ class DocumentDetector:
     def __init__(self):
         print("✅ 文档检测器已初始化")
         
-    def detect(self, image_path):
+    def detect(self, image_path,epsilon_factor=0.02):
         img = cv2.imread(image_path)
         if img is None:
             print("❌ 无法读取图片")
@@ -62,7 +62,7 @@ class DocumentDetector:
                 continue
                 
             peri = cv2.arcLength(c, True)
-            approx = cv2.approxPolyDP(c, 0.02 * peri, True)
+            approx = cv2.approxPolyDP(c, epsilon_factor * peri, True)
             
             if len(approx) == 4 and area > max_area:
                 max_area = area

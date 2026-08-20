@@ -53,6 +53,9 @@ with st.sidebar:
         """)
     
     st.subheader("透视矫正")
+    # 新增：灵敏度滑块
+    epsilon_factor = st.slider("矫正灵敏度 ", 0.01, 0.10, 0.02, 0.01)
+    # st.caption("💡 提示：如果拍摄角度很大，请调大此值（如 0.05）")
     # canny_threshold1 = st.slider("Canny 阈值1", 0, 200, 50)
     # canny_threshold2 = st.slider("Canny 阈值2", 0, 250, 150)
     
@@ -158,7 +161,8 @@ if uploaded_file is not None:
                         temp_path,
                         blur_kernel_size=blur_kernel_size,
                         adaptive_block_size=adaptive_block_size,
-                        adaptive_c=adaptive_c
+                        adaptive_c=adaptive_c,
+                        epsilon_factor=epsilon_factor
                     )
 
 

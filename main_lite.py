@@ -53,16 +53,18 @@ class SmartScanner:
                                           cv2.THRESH_BINARY, adaptive_block_size, adaptive_c)
         return final_img
 
-    def scan(self, image_path, blur_kernel_size=51, adaptive_block_size=11, adaptive_c=8):
+    def scan(self, image_path, blur_kernel_size=51, adaptive_block_size=11, adaptive_c=8,epsilon_factor=0.02):
         """主流程：YOLO 检测 -> 透视变换 -> 图像增强"""
         print(f" 正在处理图像: {image_path} ...")
         
         img = cv2.imread(image_path)
         if img is None:
             raise FileNotFoundError(f"无法读取图像: {image_path}")
-        
+
+        from doc_detector import DocumentDetector
+        detector = DocumentDetector()
         # 1. YOLO 检测文档区域
-        pts = self.detector.detect(image_path)
+        pts = detector.detect(image_path, epsilon_factor)
         if pts is None:
             raise ValueError("未检测到文档，请确保图片中有清晰的文档/纸张。")
         
