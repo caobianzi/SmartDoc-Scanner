@@ -1,11 +1,13 @@
 import cv2
 import numpy as np
+from doc_detector import DocumentDetector
 
 class SmartScanner:
-    """智能文档扫描器 - 轻量版（无 OCR，支持参数调节）"""
+    """智能文档扫描器 - YOLO 版"""
     
     def __init__(self):
-        print("✅ 智能扫描器已初始化（轻量版）")
+        self.detector = DocumentDetector()
+        print("✅ 智能扫描器已初始化（YOLO 版）")
 
     def order_points(self, pts):
         rect = np.zeros((4, 2), dtype="float32")
@@ -18,56 +20,6 @@ class SmartScanner:
         rect[1] = pts[np.argmin(diff)]
         rect[3] = pts[np.argmax(diff)]
         return rect
-
-    def preprocess(self, image_path, canny_threshold1=50, canny_threshold2=150):
-        """预处理：边缘检测，支持参数调节"""
-        img = cv2.imread(image_path)
-        if img is None:
-            raise FileNotFoundError(f"无法读取图像: {image_path}")
-        
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-        edges = cv2.Canny(blurred, canny_threshold1, canny_threshold2)
-        return img, edges
-
-        def find_document_contour(self, edges):
-            """寻找文档轮廓，带多重容错机制"""
-            contours, _ = cv2.findContours(edges, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
-            if not contours:
-                return None
-                
-            # 按面积排序，取前20个最大的轮廓
-            contours = sorted(contours, key=cv2.contourArea, reverse=True)[:20]
-            
-            # 策略1：寻找标准的四边形
-            for c in contours:
-                peri = cv2.arcLength(c, True)
-                approx = cv2.approxPolyDP(c, 0.02 * peri, True)
-                if len(approx) == 4:
-                    if cv2.contourArea(approx) > 1000:
-                        print("✅ 策略1：找到标准四边形")
-                        return approx.reshape(4, 2)
-            
-            # 策略2：如果找不到四边形，取最大轮廓的最小外接矩形
-            print("⚠️ 策略1失败，尝试策略2：最小外接矩形")
-            largest_contour = contours[0]
-            if cv2.contourArea(largest_contour) > 5000:
-                # 获取最小外接矩形
-                rect = cv2.minAreaRect(largest_contour)
-                box = cv2.boxPoints(rect)
-                box = np.array(box, dtype="float32")
-                print("✅ 策略2成功：使用最小外接矩形")
-                return box
-            
-            # 策略3：如果还是不行，返回图片的四个角（作为最后手段）
-            print("❌ 策略2失败，返回图片四角作为兜底")
-            h, w = edges.shape
-            return np.array([
-                [0, 0],
-                [w-1, 0],
-                [w-1, h-1],
-                [0, h-1]
-            ], dtype="float32")
 
     def warp_image(self, img, pts):
         pts = self.order_points(pts)
@@ -87,44 +39,40 @@ class SmartScanner:
         """图像增强，支持参数调节"""
         warped_gray = cv2.cvtColor(warped, cv2.COLOR_BGR2GRAY)
         
-        # 确保核大小是奇数
         if blur_kernel_size % 2 == 0:
             blur_kernel_size += 1
-        
+            
         background = cv2.GaussianBlur(warped_gray, (blur_kernel_size, blur_kernel_size), 0)
         enhanced = (warped_gray.astype("float32") / (background.astype("float32") + 1e-5)) * 255
         enhanced = np.clip(enhanced, 0, 255).astype("uint8")
         
-        # 确保块大小是奇数
         if adaptive_block_size % 2 == 0:
             adaptive_block_size += 1
-        
+            
         final_img = cv2.adaptiveThreshold(enhanced, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, 
                                           cv2.THRESH_BINARY, adaptive_block_size, adaptive_c)
         return final_img
 
-    def scan(self, image_path, canny_threshold1=50, canny_threshold2=150, 
-             blur_kernel_size=51, adaptive_block_size=11, adaptive_c=8):
-        """主流程，支持所有参数调节"""
+    def scan(self, image_path, blur_kernel_size=51, adaptive_block_size=11, adaptive_c=8):
+        """主流程：YOLO 检测 -> 透视变换 -> 图像增强"""
         print(f" 正在处理图像: {image_path} ...")
-        print(f"  参数: Canny({canny_threshold1}, {canny_threshold2}), "
-              f"Blur({blur_kernel_size}), Adaptive({adaptive_block_size}, {adaptive_c})")
         
-        # 1. 预处理（带参数）
-        img, edges = self.preprocess(image_path, canny_threshold1, canny_threshold2)
+        img = cv2.imread(image_path)
+        if img is None:
+            raise FileNotFoundError(f"无法读取图像: {image_path}")
         
-        # 2. 找轮廓
-        cnt = self.find_document_contour(edges)
-        if cnt is None:
-            raise ValueError("未找到文档轮廓，请确保图片中有清晰的矩形物体。")
+        # 1. YOLO 检测文档区域
+        pts = self.detector.detect(image_path)
+        if pts is None:
+            raise ValueError("未检测到文档，请确保图片中有清晰的文档/纸张。")
         
-        # 3. 矫正
-        warped = self.warp_image(img, cnt)
+        print(f"✅ 检测到文档区域: {pts}")
         
-        # 4. 增强（带参数）
+        # 2. 透视变换
+        warped = self.warp_image(img, pts)
+        
+        # 3. 图像增强
         enhanced = self.enhance_image(warped, blur_kernel_size, adaptive_block_size, adaptive_c)
         
-        text_content = "OCR 功能在云端已禁用"
-        
         print("✅ 处理完成！")
-        return warped, enhanced, text_content
+        return warped, enhanced, "OCR 功能在云端已禁用"

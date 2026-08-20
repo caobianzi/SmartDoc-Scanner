@@ -53,8 +53,8 @@ with st.sidebar:
         """)
     
     st.subheader("透视矫正")
-    canny_threshold1 = st.slider("Canny 阈值1", 0, 200, 50)
-    canny_threshold2 = st.slider("Canny 阈值2", 0, 250, 150)
+    # canny_threshold1 = st.slider("Canny 阈值1", 0, 200, 50)
+    # canny_threshold2 = st.slider("Canny 阈值2", 0, 250, 150)
     
     st.subheader("图像增强")
     blur_kernel_size = st.slider("高斯模糊核大小", 21, 101, 51, step=2)
@@ -140,14 +140,23 @@ if uploaded_file is not None:
                     scanner = SmartScanner()
                     
                     # 运行扫描（传递参数！）
-                    warped, enhanced, _ = scanner.scan(      
+                    # warped, enhanced, _ = scanner.scan(      
+                    #     temp_path,
+                    #     canny_threshold1=canny_threshold1,
+                    #     canny_threshold2=canny_threshold2,
+                    #     blur_kernel_size=blur_kernel_size,
+                    #     adaptive_block_size=adaptive_block_size,
+                    #     adaptive_c=adaptive_c
+                    # )
+                    warped, enhanced, _ = scanner.scan(
                         temp_path,
-                        canny_threshold1=canny_threshold1,
-                        canny_threshold2=canny_threshold2,
                         blur_kernel_size=blur_kernel_size,
                         adaptive_block_size=adaptive_block_size,
                         adaptive_c=adaptive_c
                     )
+
+
+
                     # 显示调试信息
                     if debug_mode:
                         st.success("✅ 文档检测成功！")
